@@ -1,0 +1,742 @@
+{
+  "name": "Large and Small email summerizer",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {},
+        "options": {}
+      },
+      "id": "bdfa122c-3fb5-4cf5-b4d0-48fff98788f1",
+      "name": "Microsoft Outlook Trigger2",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        180,
+        2260
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "zSsNyhS99RbXqFS9",
+          "name": "Microsoft Outlook account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.microsoft.com/v1.0/me/messages/{{ $json.id }}?$select=id,subject,from,receivedDateTime,body",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOutlookOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "6473a80c-c2cd-4754-bc55-7d7f549383fc",
+      "name": "Get Full Email Body2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        2260
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "zSsNyhS99RbXqFS9",
+          "name": "Microsoft Outlook account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailData = $input.first().json;\n\n// Extract email body - Outlook uses body.content\nlet emailText = '';\nif (emailData.body && emailData.body.content) {\n  emailText = emailData.body.content;\n} else if (emailData.bodyPreview) {\n  emailText = emailData.bodyPreview;\n}\n\n// 🧹 Clean out HTML tags and extra spaces\nemailText = emailText.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n\n// Count words and characters\nconst wordCount = emailText.split(/\\s+/).filter(w => w.length > 0).length;\nconst charCount = emailText.length;\n\n// Extract sender - Outlook structure\nlet senderName = 'Unknown';\nlet senderEmail = '';\n\nif (emailData.from && emailData.from.emailAddress) {\n  senderName = emailData.from.emailAddress.name || emailData.from.emailAddress.address;\n  senderEmail = emailData.from.emailAddress.address;\n}\n\n// Extract date - Outlook uses receivedDateTime\nlet emailDate = emailData.receivedDateTime || new Date().toISOString();\n\n// Categorize email size\nlet sizeCategory = 'small';\nif (wordCount > 3000 || charCount > 12000) {\n  sizeCategory = 'large';\n} else if (wordCount > 800 || charCount > 3000) {\n  sizeCategory = 'medium';\n}\n\n// Return cleaned and enriched email object\nreturn {\n  ...emailData,\n  text: emailText,\n  from: senderName,\n  fromEmail: senderEmail,\n  subject: emailData.subject || 'No subject',\n  date: emailDate,\n  id: emailData.id,\n  sizeCategory: sizeCategory,\n  wordCount: wordCount,\n  charCount: charCount\n};\n"
+      },
+      "id": "efde6be1-fba6-49b9-9357-3f012f772268",
+      "name": "Classify Email Size3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        2260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "large-email-condition",
+              "leftValue": "={{ $json.sizeCategory }}",
+              "rightValue": "large",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "911f026c-03ec-428a-8e72-05381653e280",
+      "name": "IF Large Email3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        840,
+        2260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailData = $input.first().json;\nconst emailText = emailData.text || '';\n\nconst words = emailText.split(/\\s+/).filter(word => word.length > 0);\nconst chunkSize = 2500;\n\nconst chunks = [];\nfor (let i = 0; i < words.length; i += chunkSize) {\n  const chunk = words.slice(i, i + chunkSize).join(' ');\n  chunks.push(chunk);\n}\n\nconst output = chunks.map((chunk, index) => ({\n  from: emailData.from,\n  fromEmail: emailData.fromEmail,\n  subject: emailData.subject,\n  date: emailData.date,\n  id: emailData.id,\n  text: emailData.text,\n  textChunk: chunk,\n  chunkIndex: index + 1,\n  totalChunks: chunks.length,\n  originalWordCount: words.length\n}));\n\nreturn output;"
+      },
+      "id": "7612202f-a8ea-468e-8b31-ef51fe3037fb",
+      "name": "Split Into Chunks3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst prompt = \"You are analyzing part \" + data.chunkIndex + \" of \" + data.totalChunks + \" from a long email thread.\\n\\nExtract ALL important information from this section. Be thorough and specific:\\n\\n1. PEOPLE: List every person mentioned with their role/organization\\n2. TOPICS: What is being discussed? What decisions or proposals?\\n3. DATES: List every date, deadline, or timeframe mentioned\\n4. NUMBERS: Include all specific amounts, quantities, percentages\\n5. TECHNICAL DETAILS: Systems, processes, requirements, specifications\\n6. PROBLEMS: Issues raised, blockers, concerns, questions\\n7. ACTION ITEMS: Who needs to do what? By when?\\n8. CONTEXT: Background information, history, reasons why things matter\\n\\nProvide a detailed paragraph summary (8-12 sentences). Don't skip details even if they seem minor - in large email threads, context matters.\\n\\n===EMAIL SECTION===\\n\\n\" + data.textChunk;\n\nreturn {\n  from: data.from,\n  fromEmail: data.fromEmail,\n  subject: data.subject,\n  date: data.date,\n  text: data.text,\n  id: data.id,\n  chunkIndex: data.chunkIndex,\n  totalChunks: data.totalChunks,\n  originalWordCount: data.originalWordCount,\n  chunkPrompt: prompt\n};"
+      },
+      "id": "08ba7ce6-4f1b-4551-8d0f-b678a267b8bd",
+      "name": "Code4",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    \"model\": \"gpt-4o-mini\",\n    \"messages\": [\n      {\n        \"role\": \"user\",\n        \"content\": $json.chunkPrompt\n      }\n    ],\n    \"temperature\": 0.3,\n    \"max_tokens\": 600\n  }\n}}",
+        "options": {}
+      },
+      "id": "75de6783-76dd-4383-b52f-65575e7fcbb9",
+      "name": "Summarize Each Chunk3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        2160
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "3I2HltMBB9xptAC3",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\n\nif (allItems.length === 0) {\n  throw new Error('No items received from Summarize Each Chunk node');\n}\n\nconst chunkSummaries = [];\nlet emailMetadata = null;\n\nallItems.forEach((item, index) => {\n  const data = item.json;\n  \n  if (data.choices && data.choices[0] && data.choices[0].message) {\n    const summary = data.choices[0].message.content.trim();\n    if (summary.length > 0) {\n      chunkSummaries.push(summary);\n    }\n  }\n  \n  if (index === 0 && !emailMetadata) {\n    emailMetadata = {\n      from: data.from || item.json.from,\n      fromEmail: data.fromEmail || item.json.fromEmail,\n      subject: data.subject || item.json.subject,\n      date: data.date || item.json.date,\n      id: data.id || item.json.id,\n      wordCount: data.originalWordCount || data.wordCount\n    };\n  }\n});\n\nif (chunkSummaries.length === 0) {\n  throw new Error('No summaries extracted from OpenAI responses');\n}\n\nconst combinedText = chunkSummaries\n  .map((summary, idx) => \"Part \" + (idx + 1) + \":\\n\" + summary)\n  .join('\\n\\n');\n\nreturn [{\n  from: emailMetadata.from,\n  fromEmail: emailMetadata.fromEmail,\n  subject: emailMetadata.subject,\n  date: emailMetadata.date,\n  id: emailMetadata.id,\n  wordCount: emailMetadata.wordCount,\n  combinedChunkSummaries: combinedText,\n  numberOfChunks: chunkSummaries.length\n}];"
+      },
+      "id": "1dcf5177-a31d-40e1-b96f-868a094e8459",
+      "name": "Combine Chunk Summaries3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\n\n// Simplified final summary instruction\nconst prompt = \n  \"You are summarizing a long email thread containing \" + inputData.wordCount + \n  \" words split into \" + inputData.numberOfChunks + \" parts.\\n\\n\" +\n  \"Create a concise executive summary (6–12 sentences maximum). \" +\n  \"Focus only on the essential details so it can fit neatly in a Slack message.\\n\\n\" +\n  \"Include the following sections clearly labeled:\\n\" +\n  \"1. Key Participants – who is involved and their roles.\\n\" +\n  \"2. Topic/Context – what the conversation or project is about.\\n\" +\n  \"3. Main Points – major discussions or decisions.\\n\" +\n  \"4. Deadlines – any critical dates.\\n\" +\n  \"5. Action Items – next steps or required actions.\\n\\n\" +\n  \"Avoid long explanations or excessive background. \" +\n  \"Keep paragraphs short and concise.\\n\\n\" +\n  \"===CHUNK SUMMARIES TO SYNTHESIZE===\\n\\n\" + inputData.combinedChunkSummaries;\n\nreturn {\n  from: inputData.from,\n  fromEmail: inputData.fromEmail,\n  subject: inputData.subject,\n  date: inputData.date,\n  id: inputData.id,\n  wordCount: inputData.wordCount,\n  numberOfChunks: inputData.numberOfChunks,\n  finalPrompt: prompt\n};\n"
+      },
+      "id": "cfc52874-5e72-4074-9e72-0dce91711eda",
+      "name": "Build Final Prompt3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    model: \"gpt-4o-mini\",\n    messages: [\n      {\n        role: \"system\",\n        content: \"You are an email summarizer for a business team. Create detailed, comprehensive summaries that give complete context.\"\n      },\n      {\n        role: \"user\",\n        content: $json.finalPrompt\n      }\n    ],\n    temperature: 0.3,\n    max_tokens: 1200\n  }\n}}",
+        "options": {}
+      },
+      "id": "504aff6c-d1bc-412e-9e48-d66bcb8ab0aa",
+      "name": "Create Final Summary3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        2160
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "3I2HltMBB9xptAC3",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputJson = $input.first().json;\nlet finalSummary = null;\n\nif (inputJson.choices && inputJson.choices[0] && inputJson.choices[0].message) {\n  finalSummary = inputJson.choices[0].message.content;\n}\n\nif (!finalSummary) {\n  throw new Error('No final summary generated');\n}\n\nconst emailData = $('Classify Email Size3').first().json;\n\nfunction extractSender(emailData) {\n  let sender = emailData.from || 'Unknown';\n  \n  if (typeof sender === 'string' && sender.includes('@')) {\n    sender = sender.split('@')[0].replace(/[._-]/g, ' ');\n    sender = sender.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');\n  }\n  \n  return sender;\n}\n\nlet category = 'other';\nconst content = (emailData.text || '').toLowerCase();\nif (content.includes('project') || content.includes('development')) category = 'project';\nelse if (content.includes('meeting') || content.includes('schedule')) category = 'appointment';\nelse if (content.includes('financial') || content.includes('fund')) category = 'financial';\n\n// Safe date formatting for Outlook\nlet formattedDate;\ntry {\n  const dateObj = new Date(emailData.date);\n  if (!isNaN(dateObj.getTime())) {\n    formattedDate = dateObj.toISOString().split('T')[0];\n  } else {\n    formattedDate = new Date().toISOString().split('T')[0];\n  }\n} catch (error) {\n  formattedDate = new Date().toISOString().split('T')[0];\n}\n\nreturn {\n  summary: finalSummary.trim(),\n  sender: extractSender(emailData),\n  subject: emailData.subject || 'No subject',\n  category: category,\n  date: formattedDate,\n  emailId: emailData.id || 'unknown',\n  timestamp: new Date().toISOString(),\n  processedBy: 'chunked-summarization',\n  wordCount: emailData.wordCount\n};"
+      },
+      "id": "1b36ecf5-b410-4e9e-8956-60e7e773ccbd",
+      "name": "Format Large Email Output3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nlet cleanSummary = data.summary;\n\n// Convert markdown headers to plain text headers with line breaks\ncleanSummary = cleanSummary.replace(/###\\s*(.+)/g, '\\n$1:\\n');\ncleanSummary = cleanSummary.replace(/##\\s*(.+)/g, '\\n$1:\\n');\ncleanSummary = cleanSummary.replace(/#\\s*(.+)/g, '\\n$1:\\n');\n\n// Keep bold for emphasis on key terms (Slack supports this)\ncleanSummary = cleanSummary.replace(/\\*\\*([^*]+)\\*\\*/g, '*$1*');\n\n// Convert bullet points to simple bullets\ncleanSummary = cleanSummary.replace(/^[*+-]\\s+/gm, '• ');\n\n// Clean up excessive newlines\ncleanSummary = cleanSummary.replace(/\\n{3,}/g, '\\n\\n');\n\n// Trim whitespace\ncleanSummary = cleanSummary.trim();\n\nreturn {\n  summary: cleanSummary,\n  sender: data.sender,\n  subject: data.subject,\n  category: data.category,\n  date: data.date,\n  emailId: data.emailId,\n  timestamp: data.timestamp,\n  processedBy: data.processedBy,\n  wordCount: data.wordCount\n};"
+      },
+      "id": "efb8a9da-5bcc-4c1a-a4b5-27acce551b3b",
+      "name": "Code5",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE",
+          "mode": "list",
+          "cachedResultName": "AKD-MAILS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sender": "={{ $json.sender }}",
+            "Subject": "={{ $json.subject }}",
+            "Date": "={{ $json.date }}",
+            "Category": "={{ $json.category }}",
+            "Summary": "={{ $json.summary }}",
+            "EmailID": "={{ $json.emailId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "EmailID",
+              "displayName": "EmailID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e05ebed2-912a-4222-8c7a-a9a1d4c478e6",
+      "name": "Append Large Email to Sheet2",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2820,
+        2160
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hIXyNgKwxvVB7BDK",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09GZ3H9UVC",
+          "mode": "list",
+          "cachedResultName": "akd_coms_emails"
+        },
+        "text": "=📧 *New Email Received* (Large Thread mail)\n\n*From:* {{ $json.Sender }}\n*Date:* {{ $json.Date }}\n*Category:* {{ $json.Category }}\n*Subject:* {{ $json.Subject }}\n\n*Summary:*\n{{ $json.Summary }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "44ae0675-dfcc-4315-a9da-33cc543fe6e2",
+      "name": "Slack Large Email Notification3",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        3040,
+        2160
+      ],
+      "webhookId": "e89c28ec-2ec2-45b9-ad25-1092df3f41be",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "bPL76VqiUwi86kuO",
+          "name": "Slack account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    model: \"gpt-4o-mini\",\n    messages: [\n      {\n        role: \"user\",\n        content: \"Summarize this email in 2-4 sentences. Include who is involved, what they're communicating, why it matters, any deadlines, and actions needed.\\n\\nFrom: \" + $json.from + \"\\nSubject: \" + $json.subject + \"\\nContent: \" + $json.text + \"\\n\\nProvide only the summary in plain text.\"\n      }\n    ],\n    temperature: 0.3,\n    max_tokens: 500\n  }\n}}",
+        "options": {}
+      },
+      "id": "cdaf86f7-bba1-4981-b7c9-4dddb0b93ffa",
+      "name": "OpenAI Small/Medium Email3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        2360
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "3I2HltMBB9xptAC3",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputJson = $input.first().json;\nlet openaiResponse = null;\n\nif (inputJson.choices && inputJson.choices[0] && inputJson.choices[0].message) {\n  openaiResponse = inputJson.choices[0].message.content;\n}\n\nif (!openaiResponse) {\n  throw new Error('No OpenAI response found');\n}\n\nconst emailData = $('Classify Email Size3').first().json;\n\nfunction extractSender(emailData) {\n  let sender = emailData.from || 'Unknown';\n  \n  if (typeof sender === 'string' && sender.includes('@')) {\n    sender = sender.split('@')[0].replace(/[._-]/g, ' ');\n    sender = sender.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');\n  }\n  \n  return sender;\n}\n\nlet category = 'other';\nconst content = (emailData.text || '').toLowerCase();\nif (content.includes('project')) category = 'project';\nelse if (content.includes('meeting')) category = 'appointment';\nelse if (content.includes('payment')) category = 'financial';\nelse if (content.includes('security')) category = 'security';\n\n// Safe date formatting for Outlook\nlet formattedDate;\ntry {\n  const dateObj = new Date(emailData.date);\n  if (!isNaN(dateObj.getTime())) {\n    formattedDate = dateObj.toISOString().split('T')[0];\n  } else {\n    formattedDate = new Date().toISOString().split('T')[0];\n  }\n} catch (error) {\n  formattedDate = new Date().toISOString().split('T')[0];\n}\n\nreturn {\n  summary: openaiResponse.trim(),\n  sender: extractSender(emailData),\n  subject: emailData.subject || 'No subject',\n  category: category,\n  date: formattedDate,\n  emailId: emailData.id || 'unknown',\n  timestamp: new Date().toISOString(),\n  processedBy: 'openai'\n};"
+      },
+      "id": "db0a6ca7-adb5-446b-b45c-6513a6930773",
+      "name": "Process Small Email Response3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        2360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE",
+          "mode": "list",
+          "cachedResultName": "AKD-MAILS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sender": "={{ $json.sender }}",
+            "Subject": "={{ $json.subject }}",
+            "Date": "={{ $json.date }}",
+            "Category": "={{ $json.category }}",
+            "Summary": "={{ $json.summary }}",
+            "EmailID": "={{ $json.emailId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "EmailID",
+              "displayName": "EmailID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "5fc81f28-2869-43d7-8bcf-38f9f29b7d8b",
+      "name": "Append to Google Sheet2",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1500,
+        2360
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hIXyNgKwxvVB7BDK",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09GZ3H9UVC",
+          "mode": "list",
+          "cachedResultName": "akd_coms_emails"
+        },
+        "text": "=📧 *New Email Received* (Large Thread mail)\n\n*From:* {{ $json.Sender }}\n*Date:* {{ $json.Date }}\n*Category:* {{ $json.Category }}\n*Subject:* {{ $json.Subject }}\n\n*Summary:*\n{{ $json.Summary }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "f3b1902d-ba86-4b13-b1b2-df3c566d3abf",
+      "name": "Slack Notification2",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1720,
+        2360
+      ],
+      "webhookId": "d44c4d02-48e6-4a69-af17-857f3bda476f",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "bPL76VqiUwi86kuO",
+          "name": "Slack account 7"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Microsoft Outlook Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Get Full Email Body2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Full Email Body2": {
+      "main": [
+        [
+          {
+            "node": "Classify Email Size3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Email Size3": {
+      "main": [
+        [
+          {
+            "node": "IF Large Email3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Large Email3": {
+      "main": [
+        [
+          {
+            "node": "Split Into Chunks3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Small/Medium Email3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Chunks3": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Summarize Each Chunk3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Each Chunk3": {
+      "main": [
+        [
+          {
+            "node": "Combine Chunk Summaries3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Chunk Summaries3": {
+      "main": [
+        [
+          {
+            "node": "Build Final Prompt3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Prompt3": {
+      "main": [
+        [
+          {
+            "node": "Create Final Summary3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Final Summary3": {
+      "main": [
+        [
+          {
+            "node": "Format Large Email Output3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Large Email Output3": {
+      "main": [
+        [
+          {
+            "node": "Code5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code5": {
+      "main": [
+        [
+          {
+            "node": "Append Large Email to Sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Large Email to Sheet2": {
+      "main": [
+        [
+          {
+            "node": "Slack Large Email Notification3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Small/Medium Email3": {
+      "main": [
+        [
+          {
+            "node": "Process Small Email Response3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Small Email Response3": {
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Google Sheet2": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "95322d4d-0202-4ab2-82dd-45eeb7f9b6a1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "421d6a021e837de492067b5220ce6b9ea958a56438619fc6364f8bb265514d99"
+  },
+  "id": "r9iFuo1UokD3DGmG",
+  "tags": []
+}
