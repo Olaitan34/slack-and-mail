@@ -23,8 +23,8 @@
       ],
       "credentials": {
         "microsoftOutlookOAuth2Api": {
-          "id": "zSsNyhS99RbXqFS9",
-          "name": "Microsoft Outlook account 3"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -51,8 +51,8 @@
       ],
       "credentials": {
         "microsoftOutlookOAuth2Api": {
-          "id": "zSsNyhS99RbXqFS9",
-          "name": "Microsoft Outlook account 3"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -149,8 +149,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "3I2HltMBB9xptAC3",
-          "name": "OpenAi account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -201,8 +201,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "3I2HltMBB9xptAC3",
-          "name": "OpenAi account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -237,17 +237,17 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE",
+          "value": "REDACTED_SHEET_ID",
           "mode": "list",
           "cachedResultName": "AKD-MAILS",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit?usp=drivesdk"
+          "cachedResultUrl": "REDACTED"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit#gid=0"
+          "cachedResultUrl": "REDACTED"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -331,8 +331,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "hIXyNgKwxvVB7BDK",
-          "name": "Google Sheets account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -342,7 +342,7 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "C09GZ3H9UVC",
+          "value": "REDACTED_CHANNEL_ID",
           "mode": "list",
           "cachedResultName": "akd_coms_emails"
         },
@@ -359,11 +359,11 @@
         3040,
         2160
       ],
-      "webhookId": "e89c28ec-2ec2-45b9-ad25-1092df3f41be",
+      "webhookId": "REDACTED_WEBHOOK",
       "credentials": {
         "slackOAuth2Api": {
-          "id": "bPL76VqiUwi86kuO",
-          "name": "Slack account 7"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -388,8 +388,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "3I2HltMBB9xptAC3",
-          "name": "OpenAi account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -411,17 +411,17 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE",
+          "value": "REDACTED_SHEET_ID",
           "mode": "list",
           "cachedResultName": "AKD-MAILS",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit?usp=drivesdk"
+          "cachedResultUrl": "REDACTED"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit#gid=0"
+          "cachedResultUrl": "REDACTED"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -505,8 +505,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "hIXyNgKwxvVB7BDK",
-          "name": "Google Sheets account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -516,7 +516,7 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "C09GZ3H9UVC",
+          "value": "REDACTED_CHANNEL_ID",
           "mode": "list",
           "cachedResultName": "akd_coms_emails"
         },
@@ -533,11 +533,11 @@
         1720,
         2360
       ],
-      "webhookId": "d44c4d02-48e6-4a69-af17-857f3bda476f",
+      "webhookId": "REDACTED_WEBHOOK",
       "credentials": {
         "slackOAuth2Api": {
-          "id": "bPL76VqiUwi86kuO",
-          "name": "Slack account 7"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     }

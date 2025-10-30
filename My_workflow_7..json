@@ -8,7 +8,7 @@
         ],
         "channelId": {
           "__rl": true,
-          "value": "C09GJL07BHC",
+          "value": "REDACTED_CHANNEL_ID",
           "mode": "list",
           "cachedResultName": "akd_com_bot"
         },
@@ -22,11 +22,11 @@
       ],
       "id": "6dbdeb70-4c12-49f6-8b57-90864b847560",
       "name": "Slack Trigger",
-      "webhookId": "5358eea2-c26e-422c-b742-6ac8641b6878",
+      "webhookId": "REDACTED_WEBHOOK",
       "credentials": {
         "slackApi": {
-          "id": "ulm2vdkiB5JOfjNz",
-          "name": "Slack account 10"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -36,7 +36,7 @@
         "text": "={{ $json.blocks[0].elements[0].elements[1].text }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "You are an assistant responsible for helping team members query a Google Sheet that contains client emails. \nThe sheet has the following columns: sender, subject, email summary, date, category, EmaID.\n\nYour job:\n- Understand the user’s query and return accurate information from the sheet. \n- Always base your answers ONLY on the data provided in the sheet. Do not invent or guess.\n- If the query does not match anything in the sheet or you cannot find an answer, politely say that no matching emails were found.\n\nResponse style:\n- Be professional, concise, and Slack-friendly.\n- When showing emails, include: sender, subject, category, date, and a short summary.\n- If multiple results are found, show them as a clean, numbered list.\n- If the user just greets (e.g. “hi”, “hello”), reply with a friendly greeting and explain how they can ask for emails (e.g. by sender, category, or date).\n\nNote that you dont have to summarize the mail in the sheet,if possible let it make more sense to the team.\n"
+          "systemMessage": "You are an assistant responsible for helping team members query a Google Sheet that contains client emails. \nThe sheet has the following columns: sender, subject, email summary, date, category, EmaID.\n\nYour job:\n- Understand the user’s query and return accurate information from the sheet. \n- Always base your answers ONLY on the data provided in the sheet. Do not invent or guess.\n\nResponse style:\n- Be professional, concise, and Slack-friendly.\n- When showing emails, include: sender, subject, category, date, and a short summary.\n- If multiple results are found, show them as a clean, numbered list.\n- If the user just greets (e.g. “hi”, “hello”), reply with a friendly greeting and explain how they can ask for emails (e.g. by sender, category, or date).\n\nNote that you dont have to summarize the mail in the sheet,if possible let it make more sense to the team.\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -67,8 +67,8 @@
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "3I2HltMBB9xptAC3",
-          "name": "OpenAi account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -91,17 +91,17 @@
       "parameters": {
         "documentId": {
           "__rl": true,
-          "value": "1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE",
+          "value": "REDACTED_SHEET_ID",
           "mode": "list",
           "cachedResultName": "AKD-MAILS",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit?usp=drivesdk"
+          "cachedResultUrl": "REDACTED"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h3pTq_tEb-vfAcROmJgS7Jqub2S0SEOM7TQKGx3sxYE/edit#gid=0"
+          "cachedResultUrl": "REDACTED"
         },
         "options": {}
       },
@@ -115,8 +115,8 @@
       "name": "Get row(s) in sheet in Google Sheets",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "hIXyNgKwxvVB7BDK",
-          "name": "Google Sheets account 2"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     },
@@ -125,7 +125,7 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "C09GJL07BHC",
+          "value": "REDACTED_CHANNEL_ID",
           "mode": "list",
           "cachedResultName": "akd_com_bot"
         },
@@ -142,11 +142,11 @@
       ],
       "id": "0cc73dae-7716-4d07-a0a3-523722a595c6",
       "name": "Send a message",
-      "webhookId": "f7f1998c-94e7-4cc6-b7ef-ee9f404165a2",
+      "webhookId": "REDACTED_WEBHOOK",
       "credentials": {
         "slackApi": {
-          "id": "ulm2vdkiB5JOfjNz",
-          "name": "Slack account 10"
+          "id": "REDACTED_CREDENTIAL",
+          "name": "REDACTED"
         }
       }
     }
